@@ -11,17 +11,38 @@ dotenv.config();
 const app = express();
 
 const PORT = process.env.PORT || 4000;
-const CLIENT_ORIGIN =
-  process.env.CLIENT_ORIGIN || "http://localhost:5173";
+
+const allowedOrigins = [
+  "https://trade-jornals.vercel.app" || "http://localhost:5173",
+
+];
 
 // CORS
 app.use(
   cors({
-    origin: CLIENT_ORIGIN,
+    origin: (origin, callback) => {
+      // Allow requests without an origin
+      // (Postman, server-to-server requests, etc.)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(
+        new Error(`CORS: Origin ${origin} is not allowed`)
+      );
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
+
+// Handle preflight requests
+app.options("*", cors());
 
 // Parse JSON
 app.use(express.json({ limit: "5mb" }));
@@ -44,7 +65,7 @@ app.use(notFound);
 // Error handler
 app.use(errorHandler);
 
-// Render provides PORT automatically
+// Start server
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Trading Journal API running on port ${PORT}`);
 });
